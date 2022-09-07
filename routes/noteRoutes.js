@@ -1,46 +1,42 @@
-const fs = require('fs');
-const express = require('express');
+const fs = require("fs");
+const express = require("express");
 const router = express.Router();
-const randID = require('./randID');
 
-
-
-
-// GET route for new note
-router.get('/',(req,res) => {
-    fs.readFile('./db/db.json', 'utf-8', (err, data) => {
-        if (err) {
-            throw err;
-        } else {
-            const notes = JSON.parse(data);
-            res.json(notes);
-        }
-    });
+router.get("/", (req, res) => {
+	let database = getDb();
+	res.json(database);
+});
+router.post("/", (req, res) => {
+	let database = getDb();
+	req.body.id = newId(database);
+	database.push(req.body);
+	setDb(database);
+	res.send("Saved.");
+});
+router.delete("/:note", (req, res) => {
+	let database = getDb();
+	let ids = database.map(e => e.id);
+	let deleteIndex = ids.indexOf(parseInt(req.params.note));
+	database.splice(deleteIndex, 1);
+	setDb(database);
+	res.send("Deleted.");
 });
 
-// POST route for new note
-router.post('/', (req,res) => {
-    const newNote = {
-        title: req.body.title,
-        text: req.body.text,
-        id: randID()
-    }
-fs.readFile('./db/db.json', 'utf-8', (err, data) => {
-    if(err) {
-        throw err;
-    } else {
-        const notes = JSON.parse(data);
-        notes.push(newNote);
-        fs.writeFile(
-            './db/db.json',
-            JSON.stringify(notes, null, 4),
-            (err, data) => {
-                if(err) {
-                    throw err;
-                }
-                res.json({data: req.body, message: "success!"});
-            }
-        );
-    }
-});
-});
+
+
+
+
+
+const getDb = () => JSON.parse(fs.readFileSync("./db/db.json", "utf8"));
+const setDb = (db) => fs.writeFileSync("./db/db.json", JSON.stringify(db, null, 4));
+
+function newId(db) {
+	let ids = db.map(e => e.id);
+
+	if (ids.length > 0)
+		return Math.max(...ids) + 1;
+	else
+		return 1;
+}
+
+module.exports = router;
